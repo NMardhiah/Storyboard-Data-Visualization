@@ -1,6 +1,6 @@
 ---
 title: "Visualizing Churn Dynamics in Telecommunication Perspective - "
-author: 'Nur Mardhiah Zulkhairi (P119717)'
+author: 'Nur Mardhiah Zulkhairi '
 output: 
   flexdashboard::flex_dashboard:
     theme: cerulean
