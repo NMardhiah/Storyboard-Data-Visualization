@@ -1,0 +1,443 @@
+---
+title: "Visualizing Churn Dynamics in Telecommunication Perspective - "
+author: 'Nur Mardhiah Zulkhairi (P119717)'
+output: 
+  flexdashboard::flex_dashboard:
+    theme: cerulean
+    storyboard: true
+  html_document:
+    fig_width: 20
+    fig_height: 15
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,collapse = TRUE)
+library(dplyr)
+library(readr)
+library(ggplot2)
+library(plotly)
+library(animation)
+library(gganimate)
+```
+
+Visualization {.storyboard}
+==============================================
+
+### <span style="font-size: 36px;"> Introduction </span>
+
+-    As in globally, there are multiple telecommunications companies are operating.
+
+-    Clients have to invest in market acquisitions in order to remain competitive and grow their business.
+
+-    However, the company is experiencing a significant loss in sales and customers as a result of the greater competition.
+
+-   Customer churn refers to the rate at which customers stop doing business with a company or stop using its products or services. It is also known as customer attrition. 
+
+-   Churn is divided into two which are False/Non Churn and True/Churn. "False" indicates that he customer is still active and continues to use the products or services of the company. "True" is when the customer has stopped doing business with the company or has discontinued using its products or services.
+
+-   Churn can occur for various reasons, such as dissatisfaction with the product or service, competitive offerings, changes in customer needs or preferences, or other external factors.
+
+-   Therefore, the **objectives** in this analysis is aim to measure customer loyalty to determine the causes of customer loss in order to win back the lost consumers. 
+
+-   By examining the factors and patterns associated with churned customers, companies can gain insights into why customers are leaving and take appropriate actions to reduce churn and improve customer retention.
+
+#### Step 1 : Import Dataset
+
+- **Data Source** : Kaggle (@mhdzahier)
+
+
+```{r}
+telecom_churn <- read.csv("telecom_churn.csv",sep = ",") 
+head(telecom_churn)
+```
+#### Step 2 : Dataset Information
+
+```{r}
+str(telecom_churn)
+```
+
+#### Step 3 : Summary Statistics
+
+-   Below is to check the summary statistics which there are several missing values for some of the variables, however its only a few, hence it can be ignore for the purpose of this project due to small amount.
+
+```{r}
+telecom_churn%>%
+  summary
+
+```
+
+
+### <span style="font-size: 20px;"> **Graph 1: Total Number of States** </span>
+#### Bar plot
+
+-   The list of states that been provided corresponds to the two-letter state abbreviations 
+used in the United States
+
+-   such as : WV(West Virginia), OH(Ohio), NJ(New Jersey), NY(New York) and so on 
+
+-   The x-axis represents the states, while the y-axis represents the total count
+
+-   The plot allows us to visually compare the number of states from the lowest to the highest 
+and identify the significant differences
+
+-   The visualization provided a clear overview of the distribution of states in the data set and 
+provides insights into the geographic coverage of the telecommunications company
+
+-   The count labels are displayed on the top of each bar, providing the exact count value for each state
+
+-   The plot highlights each state with different color of each bar where the darker color represent the higher counts and from the plot, the first there bar showed the highest count that represent by West Virginia (106), Minnesota(84) and New York(83) and the lowest is California(34)
+
+-   Overall, it is useful for identifying regions with higher or lower customer presence, which can further inform business strategies and decision-making.
+
+
+```{r,warning=FALSE,fig.align='center'}
+
+# Plot
+telecom_churn %>%
+  group_by(state) %>%
+  summarise(Total = n()) %>%
+  arrange(desc(Total)) %>%
+  plot_ly(x = ~reorder(state, -Total), y = ~Total, type = "bar", 
+          marker = list(color = ~Total, 
+                        colorscale = "Oranges",
+                        line = list(color = "black", width = 1),
+                        text = ~Total,
+                        textposition = "outside",
+                        showscale = TRUE)) %>%
+  layout(title = "Number of States", xaxis = list(title = "State"), 
+         yaxis = list(title = "Total count each state"),
+         margin = list(l = 50, r = 50, b = 50, t = 70), showlegend = FALSE,
+         annotations = list(x = 0.15, y = 107, xanchor = "right", yanchor = "top")) %>%
+  config(displayModeBar = TRUE)
+
+
+```
+
+
+
+### <span style="font-size: 20px;"> **Graph 2: Churn Distribution of the customer ** </span>
+#### Pie Chart
+
+-   The pie chart of "Churn Distribution" provides a visual representation of the proportion of churned and non-churned customers in the data set. 
+
+-   Overall the churn distribution showed 85.5% is False/Non Churn and 14.5% is True/Churn. 
+
+-   The pie chart help to provide a high-level overview of the churn distribution, enabling telecommunications companies to gain insights into the overall customer churn situation and make informed decisions to address customer retention and improve business strategies.
+
+
+```{r warning=FALSE, fig.align='center'}
+
+# Calculate churn distribution
+churn_distribution <- telecom_churn %>%
+  count(churn) %>%
+  mutate(percentage = n / sum(n))
+
+# Create pie chart with percentage labels
+plot_ly(churn_distribution, labels = churn_distribution$churn, 
+        values = churn_distribution$percentage, type = "pie", 
+        marker = list(colors = c("skyblue", "maroon")),
+        textposition = "inside", textinfo = "percent") %>%
+  layout(title = "Churn Distribution",font = list(size = 12),
+         showlegend = TRUE,
+         legend = list(x = 1, y = 0.5, bgcolor = "lightgrey")) %>%
+  config(displayModeBar = TRUE)
+
+```
+
+
+
+
+### <span style="font-size: 20px;"> **Graph 3: Morning Calls and Charges** </span>
+#### Scatter Plot
+
+-   The scatter plot above showed the relationship between the total morning calls and the total morning charge, categorized by churn status.
+
+-   The x-axis represents the total number of morning calls made by customers, while the y-axis represents the corresponding total charges incurred.
+
+-   The points in the scatter plot indicate individual customers, with different colors representing their churn status (False or True) and also includes a linear regression line (blue line) that depicts the general trend between the variables.
+
+-   This can observe by the positive relationship between the total morning calls and the total morning charge for customers who churned (True). As the number of morning calls increases, the corresponding charges also tend to increase. 
+
+-   This trend suggests that higher usage and charges during the morning might be a contributing factor to customer churn. This may one of the reasons that made customers to leave the company
+
+```{r,warning=FALSE,fig.align='center'}
+
+telecom_churn%>%
+  ggplot(aes(x=`total.day.calls`,y=`total.day.charge`,colour=churn))+
+  scale_color_brewer(palette="Paired")+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  labs(title="Scatterplot",
+       subtitle  = "Total Morning Calls vs Total Morning Charge",
+       x="Total Day Calls",
+       y="Total Day Charge",
+       caption="Source : @mhdzahier")+
+  theme(panel.background = element_blank(),
+        axis.line = element_line(colour = "black"))
+
+```
+
+
+### <span style="font-size: 20px;"> **Graph 4: Evening Calls and Charges** </span>
+#### Scatter Plot
+
+-   The scatter plot below focused on the relationship between the total evening calls and the total evening charge, categorized by churn status which  x-axis represents the total number of evening calls made by customers, while y-axis represents the corresponding total charges incurred.
+
+-   The points in the scatter plot represent individual customers, with different colors indicating their churn status (False or True) and also the plot included a linear regression line (blue line) that shows the general trend between the variables.
+
+-   There is a similar pattern to the previous morning calls plot where there is a slightly increasing relationship between the total evening calls and the total evening charge for customers who churned (True). 
+
+-   As the number of evening calls increases, the corresponding charges also tend to increase which through this finding suggests that higher usage and charges during the evening may contribute to customer churn.
+
+```{r,warning=FALSE,fig.align='center'}
+
+telecom_churn%>%
+  ggplot(aes(x=`total.eve.calls`,y=`total.eve.charge`,colour=churn))+
+  scale_color_brewer(palette="Pastel1")+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  labs(title="Scatterplot",
+       subtitle  = "Total Evening Calls vs Total Evening Charge",
+       x="Total Evening Calls",
+       y="Total Evening Charge",
+       caption="Source : @mhdzahier")+
+  theme(panel.background = element_blank(),
+        axis.line = element_line(colour = "black"))
+ 
+```
+
+### <span style="font-size: 20px;"> **Graph 5: Night Calls and Charges** </span>
+#### Scatter Plot
+
+-   The graph showed the relationship between the total night calls and the total night charges, categorized by churn status where the x-axis represents the total number of night calls made by customers, while the y-axis represents the corresponding total charges incurred.
+
+-   In this scatter plot, there is no clear trend or obvious pattern that can be observed between the total night calls and the total night charges which the points appear to be scattered randomly, and there is no distinct relationship between the two variables.
+
+-    Based on this scatter plot, it is safe to assume that there is no significant relationship or correlation between the total night calls and the total night charges. 
+
+-   The charges incurred during the night do not appear to be influenced by the number of night calls made by customers.
+
+```{r,warning=FALSE,fig.align='center'}
+
+telecom_churn%>%
+  ggplot(aes(x=`total.night.calls`,y=`total.night.charge`,colour=churn))+
+  scale_color_brewer(palette="Pastel2")+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  labs(title="Scatterplot",
+       subtitle  = "Total Night Calls vs Total Night Charges",
+       x="Total Night Calls",
+       y="Total Night Charges",
+       caption="Source : @mhdzahier")+
+  theme(panel.background = element_blank(),
+        axis.line = element_line(colour = "black"))
+  
+
+```
+
+### <span style="font-size: 18px;"> **Graph 6: Relationship between Total 3 days on Calls and Charges** </span>
+#### Scatter Plot
+
+We will add everything up (Morning, Evening and Night). There is an increasing relationship for customers who did churn. That could be one of the reasons for customers to leave.
+
+-   The graph represents the relationship between the total number of calls (including morning, evening, and night) and the total charge for customers, categorized by churn status which the x-axis represents the total number of calls made by customers, while the y-axis represents the corresponding total charges incurred.
+
+-   This can be observe an increasing relationship between the total number of calls and the total charges for customers who have churned where as the total number of calls increases, there is a tendency for the total charges to also increase. 
+
+-   The positive slope of the regression line further supports the notion of an increasing relationship between total calls and total charges for churned customers.
+
+-   This pattern suggests that customers who make more calls across different times of the day tend to incur higher charges, which could be one of the reasons for their decision to leave the telecommunications company.
+
+```{r,warning=FALSE,fig.align='center'}
+
+telecom_churn<-telecom_churn%>%
+  rowwise()%>%
+  mutate(Total_Calls=sum(`total.day.calls`,`total.eve.calls`,`total.night.calls`, na.rm = TRUE),
+         Total_Charge=sum(`total.day.charge`,`total.eve.charge`, `total.night.charge` , na.rm = TRUE))
+
+
+telecom_churn%>%
+  ggplot(aes(x=Total_Calls ,y=Total_Charge,colour=churn))+
+  scale_color_brewer(palette="Accent")+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  labs(title="Scatterplot",
+       subtitle  = "Total Calls vs Total Charge",
+       x="Total Calls",
+       y="Total Charge",
+       caption="Source : @mhdzahier")+
+  theme(panel.background = element_blank(),
+        axis.line = element_line(colour = "black"))
+
+```
+
+### <span style="font-size: 20px;"> **Graph 7: The charges towards the customer** </span>
+#### Box plot
+
+-   The box plot above presents the distribution of total charges for customers categorized by churn status, with further separation based on whether they have an international plan (yes) or not(no). 
+
+-   The x-axis represents the churn status of customers (churned or not churned), while the y-axis represents the total charges incurred.
+
+-   The plot is animated using the transition_states function, which allows us to see the changes in the box plots over time as the churn status changes.
+
+-   By examining the box plots, we can gain insights into the summary statistics of charges for different groups of customers. 
+
+-    The box plot for churned customers with the status of TRUE showed the distribution of total charges incurred by customers who have decided to leave the telecommunications company. The box represents the interquartile range (IQR), with the middle line indicating the median charge. 
+
+-   The box plot for non-churned customers  with the status of FALSE illustrated that the distribution of total charges for customers who have remained with the company. Any points beyond the whiskers are considered outliers.
+
+-   From this visualization, this can be draw a tentative conclusion that customers who have churned tend to have higher total charges, particularly those without an international plan. 
+
+-   This suggests that revising the telecommunication plans for customers without an international plan might be a potential strategy to mitigate churn and retain customers.
+
+
+```{r,warning=FALSE,fig.align='center'}
+
+animation <- telecom_churn %>%
+  ggplot(aes(x = churn, y = Total_Charge, fill = churn)) +
+  scale_fill_brewer(palette = "Set2") +
+  geom_boxplot() +
+  labs(title = "BoxPlot of Total Charge",
+       subtitle = "Grouped by Churn Status, Separated by International Plan",
+       x = "Churn Status",
+       y = "Total Charge based on Plan") +
+  theme(panel.background = element_blank(),
+        axis.line = element_line(colour = "black")) +
+  facet_grid(cols = vars(`international.plan`)) +
+  transition_states(churn, transition_length = 2, state_length = 1) +
+  enter_fade() +
+  exit_fade()
+
+animate(animation, nframes = 10, fps = 2)
+  
+```
+
+### <span style="font-size: 20px;"> **Graph 8: Distribution of total charges** </span>
+#### Density plot
+
+- The density plot above provides a visual representation of the distribution of total charges, grouped by churn status with the x-axis represents the total charges incurred by customers, while the y-axis represents the density or probability of occurrence at different charge levels.
+
+-   The density plot is particularly useful for understanding the shape and overlap of distributions between churned and non-churned customers. 
+
+-   The density curve for churned customers with status TRUE is represented by the shaded yellow area. The curve shows the probability of different charge values occurring among churned customers. Higher peaks in the density curve indicate regions of higher charge concentrations, while lower peaks represent areas of lower charge concentrations.
+
+-   The density curve for non-churned customers with status FALSE is represented by the shaded green area. Similarly, this curve illustrates the probability of different charge values occurring among non-churned customers.
+
+-    Areas where the yellow and green curves diverge/disunite suggest potential discrepancies in charge levels between churned and non-churned customers. Conversely, areas where the curves overlap indicate similar charge distributions for both groups.
+
+- In this specific case, the density plot shows that there is a higher concentration of churned customers with relatively higher total charges compared to non-churned customers. This suggests that customers with higher charges are more likely to churn. However, the plot also indicates some overlap in charge distributions, indicating that there are non-churned customers with high charges as well.
+
+- Overall, it provides insights into the probability of different charge levels occurring and helps identify potential trends or patterns that might influence customer churn.
+
+```{r,warning=FALSE,fig.align='center'}
+
+telecom_churn%>%
+  ggplot(aes(x=Total_Charge,fill=churn))+
+  scale_fill_brewer(palette="Set3")+
+  geom_density(alpha=0.7)+
+  labs(title="Density Plot",
+       subtitle  = "Total Charge grouped by Churn Status",
+       x="Total Charge",
+       caption="Source : @mhdzahier")+
+  theme(panel.background = element_blank(),
+        axis.line = element_line(colour = "black"))
+  
+```
+
+### <span style="font-size: 20px;"> **Graph 9: Distribution of customer service by churn status** </span>
+#### Bar plot
+
+-   The bar plot above represents the distribution of customer service calls grouped by churn status with the x-axis indicates the churn status, with "FALSE" representing non-churned customers and "TRUE" representing churned customers. The y-axis represents the count or frequency of customer service calls.
+
+-   The plot is animated using the transition_states function, allowing us to see the changes in the distribution of customer service calls over time as the churn status changes.
+
+-   By comparing the bar heights between churned and non-churned customers, we can observe any differences in the frequency of customer service calls. Higher bars for non-churned (green) customers suggest a higher number of calls, indicating potential issues or concerns that might contribute to customer churn. 
+
+-   On the other hand, lower bars for churned (purple) customers indicate a lower frequency of customer service calls, implying greater satisfaction and potentially better retention.
+
+- The bar plot provides a clear visual comparison between churned and non-churned customers regarding their engagement with customer service calls which it will helps identify patterns or trends in customer behavior that might be related to churn.
+
+```{r,warning=FALSE,fig.align='center'}
+
+animation <- telecom_churn %>%
+  ggplot(aes(x = churn, y = customer.service.calls, fill = churn)) +
+  geom_bar(stat = "identity") +
+  scale_fill_brewer(palette = "Accent") +
+  labs(title = "Customer Service Calls",
+       subtitle = "Customer Service Calls grouped by Churn Status",
+       x = "Churn Status",
+       fill = "Churn Status",
+       y = "Customer Service Calls") +
+  theme(panel.background = element_blank(),
+        axis.line = element_line(colour = "black")) +
+  transition_states(churn, transition_length = 3, state_length = 1) +
+  enter_fade() +
+  exit_fade()
+
+animate(animation, nframes = 10, fps = 2)
+
+```
+
+### <span style="font-size: 18px;"> **Graph 10: Relationship between International Charges and International Calls** </span>
+#### Scatter plot
+
+-   The scatter plot above illustrates the relationship between international calls and international charges, with the data points differentiated by churn status. 
+
+-   The x-axis represents the number of international calls made by customers, while the y-axis represents the corresponding international charges incurred.
+
+-   Each data point on the scatter plot represents an individual customer.
+
+-   The scatter plot displays the distribution of international calls and charges, allowing to observe any potential relationship between the two variables which can gain insights into how international calls relate to international charges for both churned and non-churned customers.
+
+-   The regression line helps identify any underlying patterns or correlations between international calls and charges. The slope of the line provides an indication of the relationship's direction, while its steepness or flatness reflects the strength of the relationship.
+
+-   Faceting/ divide : The scatter plot is further divided into subplots using the international plan variable. Each subplot represents a specific category within the international plan variable, allowing for a comparison of the relationship between international calls and charges for different plan types.
+
+-   Overall, this can be observe a clear relationship between international calls and international charges. Generally, as the number of international calls increases, the corresponding international charges also tend to increase. This observation holds true for both churned and non-churned customers. Additionally, the faceting by international plan provides insights into how the relationship may vary across different plan types.
+
+
+```{r, warning=FALSE, fig.align='center'}
+telecom_churn%>%
+  ggplot(aes(x=`total.intl.calls` ,y=`total.intl.charge`,colour=churn),
+         fig.width=15, fig.height=10) +
+  scale_color_brewer(palette="RdBu")+
+  geom_jitter()+
+  geom_smooth(method = "lm")+
+  labs(title="Scatterplot",
+       subtitle  = "International Calls vs International Charge",
+       x="International Calls",
+       y="International Charge",
+       caption="Source : @mhdzahier")+
+  theme(panel.background = element_blank(),
+        axis.line = element_line(colour = "black"))+
+   facet_grid(cols = vars(`international.plan`))
+
+```
+
+
+
+### <span style="font-size: 36px;"> Conclusion </span>
+
+-   In this storyboard, we have explored the key visualizations, their implications, 
+and the overall conclusions drawn from the analysis of customer churn in the telecommunications industry. 
+
+-   As conclusion, the analysis of customer churn in the telecommunications industry 
+has provided valuable insights into the dynamics of customer attrition which overall
+the call and charges could be the main reason of customers leaving.
+
+-   Through the visualizations we explored, we identified several important factors 
+that contribute to churn, such as usage patterns, charges, and customer service interactions. 
+
+-   By understanding these factors and their impact on customer loyalty, telecommunications 
+companies can take proactive measures to reduce churn and improve customer retention.
+
+-   By continuously monitoring and analyzing customer churn patterns, the company can reshape  
+the strategies and offerings that meet the evolving needs for their customers, 
+enhance their satisfaction, and build long-lasting relationships.
+
+-   For further analysis or consideration of other factors that may be the necessary to 
+fully understand the underlying reasons for the customer churn and the impact of total 
+calls and charges on customer behavior.
+
+
+
