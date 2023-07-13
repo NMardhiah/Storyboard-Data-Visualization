@@ -1,6 +1,8 @@
 # Storyboard-Data-Visualization
 topic : Visualizing Churn Dynamics in Telecommunication Perspective
+
 As in globally, there are multiple telecommunications companies are operating.
+
 Clients have to invest in market acquisitions in order to remain competitive and grow their business.
 
 However, the company is experiencing a significant loss in sales and customers as a result of the greater competition.
